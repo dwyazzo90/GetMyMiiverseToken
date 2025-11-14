@@ -25,3 +25,14 @@ This tool is only useful so you can access the Wii U version of the Miiverse por
 
 ## How the hell does this work? Never seen any homebrew apps use Miiverse, and it would be good if they did...
 This app just calls nn::olv functions (Olive is the codename of Miiverse) in a raw way (assembly) from some simple reverse engineering that i did, that basically initializes it, and then gets the tokens, you can check the source code if youre interested, although i wish WUT just supported nn::olv by default
+
+## I have my headers now, now what, i want to access!
+You need the Miiverse portal user agent, heres mine:
+
+Mozilla/5.0 (Nintendo WiiU) AppleWebKit/536.28 (KHTML, like Gecko) NX/3.0.3.12.6 miiverse/3.1.prod.US
+
+Now, set all the headers and modify the user agent, make sure you disable http2 on the browser, so
+it only requests the Wii U Miiverse portal page with http1
+
+## Give me the portal URL for Juxt!
+Figure that out for yourself...
