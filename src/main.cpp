@@ -2,7 +2,6 @@
 #include <sys/stat.h>
 #include <stdio.h>
 #include <time.h>
-#include <coreinit/time.h> // For OSCalendarTime
 #include <coreinit/debug.h>
 #include <whb/log.h>
 #include <whb/log_console.h>
@@ -20,7 +19,7 @@ typedef unsigned int u32;
 typedef unsigned int u64;
 typedef unsigned int s32;
 
-struct InitializeParam
+struct nnolvInitializeParam
 {
     u32 flags;
     u32 reportTypes;
@@ -31,39 +30,37 @@ struct InitializeParam
     u8 reserved[40];
 };
 
-extern "C" void InitializeParam_ctor(InitializeParam *thisPtr) asm("__ct__Q3_2nn3olv15InitializeParamFv");
+extern "C" void nnolvInitializeParam_ctor(nnolvInitializeParam *thisPtr) asm("__ct__Q3_2nn3olv15InitializeParamFv");
 
-extern "C" u32 InitializeParam_SetFlags(InitializeParam *thisPtr, u32 flags) asm("SetFlags__Q3_2nn3olv15InitializeParamFUi");
+extern "C" u32 nnolvInitializeParam_SetFlags(nnolvInitializeParam *thisPtr, u32 flags) asm("SetFlags__Q3_2nn3olv15InitializeParamFUi");
 
-extern "C" u32 InitializeParam_SetWork(InitializeParam *thisPtr, u8 *work, u32 size) asm("SetWork__Q3_2nn3olv15InitializeParamFPUcUi");
+extern "C" u32 nnolvInitializeParam_SetWork(nnolvInitializeParam *thisPtr, u8 *work, u32 size) asm("SetWork__Q3_2nn3olv15InitializeParamFPUcUi");
 
-extern "C" u32 InitializeParam_SetSysArgs(InitializeParam *thisPtr, const void *args, u32 size) asm("SetSysArgs__Q3_2nn3olv15InitializeParamFPCvUi");
+extern "C" u32 nnolvInitializeParam_SetSysArgs(nnolvInitializeParam *thisPtr, const void *args, u32 size) asm("SetSysArgs__Q3_2nn3olv15InitializeParamFPCvUi");
 
-extern "C" u32 InitializeParam_SetReportTypes(InitializeParam *thisPtr, u32 flags) asm("SetReportTypes__Q3_2nn3olv15InitializeParamFUi");
+extern "C" u32 nnolvInitializeParam_SetReportTypes(nnolvInitializeParam *thisPtr, u32 flags) asm("SetReportTypes__Q3_2nn3olv15InitializeParamFUi");
 
-extern "C" u32 nnOlvInitialize(const InitializeParam *param) asm("Initialize__Q2_2nn3olvFPCQ3_2nn3olv15InitializeParam");
+extern "C" u32 nnolvInitialize(const nnolvInitializeParam *param) asm("Initialize__Q2_2nn3olvFPCQ3_2nn3olv15InitializeParam");
 
-extern "C" u32 nnOlvFinalize(void) asm("Finalize__Q2_2nn3olvFv");
+extern "C" u32 nnolvFinalize(void) asm("Finalize__Q2_2nn3olvFv");
 
-extern "C" uint32_t GetServiceToken(char *buf, unsigned int bufSize) asm("GetServiceToken__Q2_2nn3olvFPcUi");
+extern "C" uint32_t nnolvGetServiceToken(char *buf, unsigned int bufSize) asm("GetServiceToken__Q2_2nn3olvFPcUi");
 
-extern "C" uint32_t GetParamPack(char *buf, unsigned int bufSize) asm("GetParamPack__Q2_2nn3olvFPcUi");
-
-extern "C" uint32_t GetUserAgent(char *buf, unsigned int bufSize) asm("GetUserAgent__Q2_2nn3olvFPcUi");
+extern "C" uint32_t nnolvGetParamPack(char *buf, unsigned int bufSize) asm("GetParamPack__Q2_2nn3olvFPcUi");
 
 void InitializeMiiverse()
 {
-    alignas(8) InitializeParam paramStorage;
-    InitializeParam *param = &paramStorage;
+    alignas(8) nnolvInitializeParam paramStorage;
+    nnolvInitializeParam *param = &paramStorage;
 
-    InitializeParam_ctor(param);
+    nnolvInitializeParam_ctor(param);
 
-    static u8 workBuffer[512 * 1024];
+    static u8 workBuffer[256 * 1024];
 
-    InitializeParam_SetFlags(param, 0);
-    InitializeParam_SetWork(param, workBuffer, sizeof(workBuffer));
+    nnolvInitializeParam_SetFlags(param, 0);
+    nnolvInitializeParam_SetWork(param, workBuffer, sizeof(workBuffer));
 
-    u32 rc = nnOlvInitialize(param);
+    u32 rc = nnolvInitialize(param);
 
     // Discovery request success
     if (rc != 0x01100080)
@@ -74,8 +71,8 @@ void InitializeMiiverse()
     {
         WHBLogPrintf("[nn::olv] nn::olv::Initialize SUCCESS! -> (rc=%08X)\n", rc);
 
-        char tokenBuf[520] = {};
-        u32 rcTok = GetServiceToken(tokenBuf, sizeof(tokenBuf));
+        char tokenBuf[513] = {};
+        u32 rcTok = nnolvGetServiceToken(tokenBuf, sizeof(tokenBuf));
 
         if (rcTok != 0x01100080)
         {
@@ -87,8 +84,8 @@ void InitializeMiiverse()
             WHBLogPrintf("[nn::olv] Service Token: %s\n", tokenBuf);
         }
 
-        char packBuf[520] = {};
-        u32 rcPack = GetParamPack(packBuf, sizeof(packBuf));
+        char packBuf[513] = {};
+        u32 rcPack = nnolvGetParamPack(packBuf, sizeof(packBuf));
 
         if (rcPack != 0x01100080)
         {
@@ -101,7 +98,6 @@ void InitializeMiiverse()
         }
 
         WHBLogPrintf("Saving Miiverse auth data to SD Card...\n");
-        OSSleepTicks(OSMillisecondsToTicks(10));
 
         // Get current user's PID
         nn::act::PrincipalId pid = nn::act::GetPrincipalId();
@@ -149,7 +145,6 @@ void InitializeMiiverse()
             WHBLogPrintf("Failed to write SD Card file:\n");
             WHBLogPrintf("%s\n", filePath);
         }
-        OSSleepTicks(OSMillisecondsToTicks(10));
     }
 }
 
@@ -160,34 +155,39 @@ int main(int argc, char **argv)
 
     WHBLogPrintf("Initializing network...\n");
     WHBLogConsoleDraw();
-    OSSleepTicks(OSMillisecondsToTicks(50));
+    OSSleepTicks(OSMillisecondsToTicks(10));
 
     nn::ac::Initialize();
     nn::ac::ConfigIdNum configId;
     nn::ac::GetStartupId(&configId);
     nn::ac::Connect(configId);
 
+    WHBLogPrintf("Initializing NSSL...\n");
+    WHBLogConsoleDraw();
+    OSSleepTicks(OSMillisecondsToTicks(10));
+
+    // Without NSSL being initialized first, nn::olv itself is never initialized?
     NSSLInit();
 
     WHBLogPrintf("Initializing account...\n");
     WHBLogConsoleDraw();
-    OSSleepTicks(OSMillisecondsToTicks(50));
+    OSSleepTicks(OSMillisecondsToTicks(10));
 
     nn::act::Initialize();
 
     WHBLogPrintf("[nn::olv] Starting Miiverse initialization...\n");
     WHBLogConsoleDraw();
-    OSSleepTicks(OSMillisecondsToTicks(50));
 
     InitializeMiiverse();
 
     while (WHBProcIsRunning())
     {
         WHBLogConsoleDraw();
-        OSSleepTicks(OSMillisecondsToTicks(50));
+        OSSleepTicks(OSMillisecondsToTicks(25));
     }
 
-    nnOlvFinalize();
+    // After error report/After success
+    nnolvFinalize();
     NSSLFinish();
     nn::act::Finalize();
     nn::ac::Finalize();
